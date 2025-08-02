@@ -1,4 +1,4 @@
-import { type Employee, type InsertEmployee, type SalarySheet, type InsertSalarySheet } from "@shared/schema";
+import { type Employee, type InsertEmployee, type SalarySheet, type InsertSalarySheet, type Designation, type InsertDesignation } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -8,6 +8,13 @@ export interface IStorage {
   createEmployee(employee: InsertEmployee): Promise<Employee>;
   updateEmployee(id: string, employee: Partial<InsertEmployee>): Promise<Employee | undefined>;
   deleteEmployee(id: string): Promise<boolean>;
+  
+  // Designation management
+  getDesignations(): Promise<Designation[]>;
+  getDesignation(id: string): Promise<Designation | undefined>;
+  createDesignation(designation: InsertDesignation): Promise<Designation>;
+  updateDesignation(id: string, designation: Partial<InsertDesignation>): Promise<Designation | undefined>;
+  deleteDesignation(id: string): Promise<boolean>;
   
   // Salary sheet management
   getSalarySheets(): Promise<SalarySheet[]>;
@@ -19,16 +26,35 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private employees: Map<string, Employee>;
   private salarySheets: Map<string, SalarySheet>;
+  private designations: Map<string, Designation>;
 
   constructor() {
     this.employees = new Map();
     this.salarySheets = new Map();
+    this.designations = new Map();
     
     // Initialize with sample data
     this.initializeSampleData();
   }
 
   private initializeSampleData() {
+    // Initialize default designations
+    const defaultDesignations: InsertDesignation[] = [
+      { name: 'Manager', isActive: 1 },
+      { name: 'Assistant Manager', isActive: 1 },
+      { name: 'Supervisor', isActive: 1 },
+      { name: 'Assistant', isActive: 1 },
+      { name: 'Senior Worker', isActive: 1 },
+      { name: 'Worker', isActive: 1 },
+      { name: 'Trainee', isActive: 1 }
+    ];
+
+    defaultDesignations.forEach(designation => {
+      const id = randomUUID();
+      const designationWithId: Designation = { ...designation, id };
+      this.designations.set(id, designationWithId);
+    });
+
     const sampleEmployees: InsertEmployee[] = [
       {
         name: 'राम कुमार',
@@ -98,6 +124,35 @@ export class MemStorage implements IStorage {
 
   async deleteEmployee(id: string): Promise<boolean> {
     return this.employees.delete(id);
+  }
+
+  // Designation management methods
+  async getDesignations(): Promise<Designation[]> {
+    return Array.from(this.designations.values()).filter(d => d.isActive === 1);
+  }
+
+  async getDesignation(id: string): Promise<Designation | undefined> {
+    return this.designations.get(id);
+  }
+
+  async createDesignation(insertDesignation: InsertDesignation): Promise<Designation> {
+    const id = randomUUID();
+    const designation: Designation = { ...insertDesignation, id };
+    this.designations.set(id, designation);
+    return designation;
+  }
+
+  async updateDesignation(id: string, updateData: Partial<InsertDesignation>): Promise<Designation | undefined> {
+    const designation = this.designations.get(id);
+    if (!designation) return undefined;
+    
+    const updatedDesignation: Designation = { ...designation, ...updateData };
+    this.designations.set(id, updatedDesignation);
+    return updatedDesignation;
+  }
+
+  async deleteDesignation(id: string): Promise<boolean> {
+    return this.designations.delete(id);
   }
 
   async getSalarySheets(): Promise<SalarySheet[]> {

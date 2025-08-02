@@ -16,6 +16,12 @@ export const employees = pgTable("employees", {
   attendance: json("attendance").$type<string[]>().default([]).notNull(),
 });
 
+export const designations = pgTable("designations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  isActive: integer("is_active").default(1).notNull(),
+});
+
 export const salarySheets = pgTable("salary_sheets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   month: text("month").notNull(),
@@ -32,10 +38,16 @@ export const insertSalarySheetSchema = createInsertSchema(salarySheets).omit({
   id: true,
 });
 
+export const insertDesignationSchema = createInsertSchema(designations).omit({
+  id: true,
+});
+
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type Employee = typeof employees.$inferSelect;
 export type InsertSalarySheet = z.infer<typeof insertSalarySheetSchema>;
 export type SalarySheet = typeof salarySheets.$inferSelect;
+export type InsertDesignation = z.infer<typeof insertDesignationSchema>;
+export type Designation = typeof designations.$inferSelect;
 
 // Attendance codes validation - including null/empty option
 export const attendanceCodeSchema = z.enum(['NONE', 'P', 'A', 'H', 'PP']);

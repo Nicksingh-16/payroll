@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { X } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,9 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
-import { insertEmployeeSchema } from "@shared/schema";
-import type { Employee, InsertEmployee } from "@shared/schema";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { insertEmployeeSchema, insertDesignationSchema } from "@shared/schema";
+import type { Employee, InsertEmployee, Designation } from "@shared/schema";
 import { z } from "zod";
 
 interface EmployeeModalProps {
@@ -35,6 +35,13 @@ const formSchema = insertEmployeeSchema.extend({
 export default function EmployeeModal({ isOpen, onClose, employee }: EmployeeModalProps) {
   const { toast } = useToast();
   const isEditing = !!employee;
+  const [showNewDesignation, setShowNewDesignation] = useState(false);
+  const [newDesignationName, setNewDesignationName] = useState("");
+
+  // Fetch designations
+  const { data: designations = [], isLoading: designationsLoading } = useQuery<Designation[]>({
+    queryKey: ['/api/designations'],
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -78,6 +85,31 @@ export default function EmployeeModal({ isOpen, onClose, employee }: EmployeeMod
       });
     }
   }, [employee, form]);
+
+  const createDesignation = useMutation({
+    mutationFn: async (name: string) => {
+      return apiRequest('/api/designations', {
+        method: 'POST',
+        body: { name, isActive: 1 },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/designations'] });
+      setNewDesignationName("");
+      setShowNewDesignation(false);
+      toast({
+        title: "नया पद जोड़ा गया",
+        description: "पद सफलतापूर्वक बनाया गया",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "त्रुटि",
+        description: "पद बनाने में असफल",
+        variant: "destructive",
+      });
+    },
+  });
 
   const createEmployeeMutation = useMutation({
     mutationFn: async (data: InsertEmployee) => {
@@ -158,19 +190,71 @@ export default function EmployeeModal({ isOpen, onClose, employee }: EmployeeMod
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>पद</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="पद चुनें" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Manager">Manager</SelectItem>
-                      <SelectItem value="Assistant">Assistant</SelectItem>
-                      <SelectItem value="Worker">Worker</SelectItem>
-                      <SelectItem value="Supervisor">Supervisor</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2">
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="पद चुनें" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {designations.map((designation) => (
+                          <SelectItem key={designation.id} value={designation.name}>
+                            {designation.name}
+                          </SelectItem>
+                        ))}
+                        <div className="border-t pt-2">
+                          <div 
+                            className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-gray-100"
+                            onClick={() => setShowNewDesignation(true)}
+                          >
+                            <Plus className="h-4 w-4" />
+                            <span>नया पद जोड़ें</span>
+                          </div>
+                        </div>
+                      </SelectContent>
+                    </Select>
+                    
+                    {showNewDesignation && (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="नया पद दर्ज करें"
+                          value={newDesignationName}
+                          onChange={(e) => setNewDesignationName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newDesignationName.trim()) {
+                              createDesignation.mutate(newDesignationName.trim());
+                            }
+                            if (e.key === 'Escape') {
+                              setShowNewDesignation(false);
+                              setNewDesignationName("");
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            if (newDesignationName.trim()) {
+                              createDesignation.mutate(newDesignationName.trim());
+                            }
+                          }}
+                          disabled={!newDesignationName.trim() || createDesignation.isPending}
+                        >
+                          जोड़ें
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setShowNewDesignation(false);
+                            setNewDesignationName("");
+                          }}
+                        >
+                          रद्द करें
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
