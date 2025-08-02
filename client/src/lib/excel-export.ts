@@ -8,6 +8,7 @@ export function exportToExcel(employees: Employee[], monthYear: string, totalDay
       if (status === 'P') count += 1;
       else if (status === 'H') count += 0.5;
       else if (status === 'PP') count += 2;
+      // 'A' and 'NONE' count as 0
     }
     return count;
   };
@@ -17,8 +18,8 @@ export function exportToExcel(employees: Employee[], monthYear: string, totalDay
     return Math.floor(dailyRate * attendanceCount);
   };
 
-  // Create CSV content
-  let csvContent = "data:text/csv;charset=utf-8,";
+  // Create CSV content with proper BOM for Hindi characters
+  let csvContent = "\uFEFF"; // UTF-8 BOM
   
   // Headers
   const headers = [
@@ -38,15 +39,16 @@ export function exportToExcel(employees: Employee[], monthYear: string, totalDay
   employees.forEach((emp, index) => {
     const attendanceCount = calculateAttendanceCount(emp.attendance, totalDays);
     const grossSalary = calculateGrossSalary(emp, attendanceCount, totalDays);
-    const esi = Math.floor(grossSalary * 0.0175);
-    const pf = Math.floor(grossSalary * 0.12);
-    const totalDeduction = esi + pf;
+    const esi = Math.floor(grossSalary * ((emp.esi_rate || 0) / 10000));
+    const pf = Math.floor(grossSalary * ((emp.pf_rate || 0) / 10000));
+    const otherDeduction = emp.other_deduction || 0;
+    const totalDeduction = esi + pf + otherDeduction;
     const netSalary = grossSalary - totalDeduction;
     
     const row = [
       index + 1,
-      emp.name,
-      emp.position,
+      `"${emp.name}"`, // Quote names to handle commas in names
+      `"${emp.position}"`,
       emp.basic,
       emp.hra,
       emp.allowance
@@ -54,7 +56,8 @@ export function exportToExcel(employees: Employee[], monthYear: string, totalDay
     
     // Add attendance for each day
     for (let i = 0; i < totalDays; i++) {
-      row.push(emp.attendance[i] || 'P');
+      const status = emp.attendance[i] || 'NONE';
+      row.push(status === 'NONE' ? '-' : status);
     }
     
     row.push(
@@ -62,7 +65,7 @@ export function exportToExcel(employees: Employee[], monthYear: string, totalDay
       grossSalary,
       esi,
       pf,
-      0,
+      otherDeduction,
       totalDeduction,
       netSalary
     );
@@ -70,11 +73,18 @@ export function exportToExcel(employees: Employee[], monthYear: string, totalDay
     csvContent += row.join(',') + '\n';
   });
   
-  const encodedUri = encodeURI(csvContent);
+  // Create blob with proper encoding
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `Salary_Sheet_${monthYear}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  
+  if (link.download !== undefined) {
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Salary_Sheet_${monthYear}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 }

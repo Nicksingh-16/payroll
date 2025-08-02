@@ -84,6 +84,7 @@ export default function SalaryManagement() {
       if (status === 'P') count += 1;
       else if (status === 'H') count += 0.5;
       else if (status === 'PP') count += 2;
+      // 'A' and 'NONE' count as 0, no need to handle explicitly
     }
     return count;
   };

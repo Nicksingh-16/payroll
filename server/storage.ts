@@ -36,7 +36,10 @@ export class MemStorage implements IStorage {
         basic: 25000,
         hra: 5000,
         allowance: 2000,
-        attendance: Array(31).fill('P')
+        esi_rate: 1750,
+        pf_rate: 1200,
+        other_deduction: 0,
+        attendance: Array(31).fill('NONE')
       },
       {
         name: 'सीता देवी',
@@ -44,7 +47,10 @@ export class MemStorage implements IStorage {
         basic: 18000,
         hra: 3600,
         allowance: 1500,
-        attendance: Array(31).fill('P')
+        esi_rate: 1750,
+        pf_rate: 1200,
+        other_deduction: 0,
+        attendance: Array(31).fill('NONE')
       },
       {
         name: 'मोहन लाल',
@@ -52,7 +58,10 @@ export class MemStorage implements IStorage {
         basic: 15000,
         hra: 3000,
         allowance: 1000,
-        attendance: Array(31).fill('P')
+        esi_rate: 0,
+        pf_rate: 1200,
+        other_deduction: 0,
+        attendance: Array(31).fill('NONE')
       }
     ];
 

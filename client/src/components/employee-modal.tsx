@@ -27,6 +27,9 @@ const formSchema = insertEmployeeSchema.extend({
   basic: z.number().min(1, "मूल वेतन आवश्यक है"),
   hra: z.number().min(0, "HRA 0 या उससे अधिक होना चाहिए"),
   allowance: z.number().min(0, "भत्ता 0 या उससे अधिक होना चाहिए"),
+  esi_rate: z.number().min(0, "ESI दर 0 या उससे अधिक होना चाहिए"),
+  pf_rate: z.number().min(0, "PF दर 0 या उससे अधिक होना चाहिए"),
+  other_deduction: z.number().min(0, "अन्य कटौती 0 या उससे अधिक होना चाहिए"),
 });
 
 export default function EmployeeModal({ isOpen, onClose, employee }: EmployeeModalProps) {
@@ -41,7 +44,10 @@ export default function EmployeeModal({ isOpen, onClose, employee }: EmployeeMod
       basic: 15000,
       hra: 3000,
       allowance: 1000,
-      attendance: Array(31).fill('P'),
+      esi_rate: 1750,
+      pf_rate: 1200,
+      other_deduction: 0,
+      attendance: Array(31).fill('NONE'),
     },
   });
 
@@ -53,6 +59,9 @@ export default function EmployeeModal({ isOpen, onClose, employee }: EmployeeMod
         basic: employee.basic,
         hra: employee.hra,
         allowance: employee.allowance,
+        esi_rate: employee.esi_rate,
+        pf_rate: employee.pf_rate,
+        other_deduction: employee.other_deduction,
         attendance: employee.attendance,
       });
     } else {
@@ -62,7 +71,10 @@ export default function EmployeeModal({ isOpen, onClose, employee }: EmployeeMod
         basic: 15000,
         hra: 3000,
         allowance: 1000,
-        attendance: Array(31).fill('P'),
+        esi_rate: 1750,
+        pf_rate: 1200,
+        other_deduction: 0,
+        attendance: Array(31).fill('NONE'),
       });
     }
   }, [employee, form]);
@@ -222,6 +234,70 @@ export default function EmployeeModal({ isOpen, onClose, employee }: EmployeeMod
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="esi_rate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ESI दर (BP)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="1750"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="pf_rate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>PF दर (BP)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="1200"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="other_deduction"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>अन्य कटौती</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
+              <p><strong>नोट:</strong> ESI और PF दर Basis Points में है (1.75% = 1750, 12% = 1200)</p>
+              <p>ESI/PF 0 करके disable कर सकते हैं</p>
+            </div>
 
             <div className="flex space-x-3 pt-4">
               <Button

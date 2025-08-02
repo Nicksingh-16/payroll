@@ -18,9 +18,10 @@ export default function SummaryCards({
     (acc, employee) => {
       const attendanceCount = calculateAttendanceCount(employee.attendance, totalDays);
       const grossSalary = calculateGrossSalary(employee, attendanceCount, totalDays);
-      const esi = Math.floor(grossSalary * 0.0175);
-      const pf = Math.floor(grossSalary * 0.12);
-      const deductions = esi + pf;
+      const esi = Math.floor(grossSalary * ((employee.esi_rate || 0) / 10000));
+      const pf = Math.floor(grossSalary * ((employee.pf_rate || 0) / 10000));
+      const otherDeduction = employee.other_deduction || 0;
+      const deductions = esi + pf + otherDeduction;
       const netSalary = grossSalary - deductions;
 
       return {

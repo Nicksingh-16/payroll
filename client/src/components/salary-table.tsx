@@ -28,6 +28,7 @@ export default function SalaryTable({
       case 'A': return 'bg-red-50 text-red-800';
       case 'H': return 'bg-yellow-50 text-yellow-800';
       case 'PP': return 'bg-blue-50 text-blue-800';
+      case 'NONE': return 'bg-gray-50 text-gray-600';
       default: return 'bg-gray-50 text-gray-800';
     }
   };
@@ -66,9 +67,9 @@ export default function SalaryTable({
             {employees.map((employee, index) => {
               const attendanceCount = calculateAttendanceCount(employee.attendance, totalDays);
               const grossSalary = calculateGrossSalary(employee, attendanceCount, totalDays);
-              const esi = Math.floor(grossSalary * 0.0175);
-              const pf = Math.floor(grossSalary * 0.12);
-              const otherDeduction = 0;
+              const esi = Math.floor(grossSalary * ((employee.esi_rate || 0) / 10000));
+              const pf = Math.floor(grossSalary * ((employee.pf_rate || 0) / 10000));
+              const otherDeduction = employee.other_deduction || 0;
               const totalDeduction = esi + pf + otherDeduction;
               const netSalary = grossSalary - totalDeduction;
 
@@ -86,13 +87,14 @@ export default function SalaryTable({
                     <td key={dayIndex} className="px-2 py-3 text-center">
                       {dayIndex < totalDays ? (
                         <Select
-                          value={employee.attendance[dayIndex] || 'P'}
+                          value={employee.attendance[dayIndex] || 'NONE'}
                           onValueChange={(value) => onAttendanceChange(employee.id, dayIndex, value as AttendanceCode)}
                         >
-                          <SelectTrigger className={`w-10 h-8 text-xs border border-slate-300 rounded text-center font-bold ${getAttendanceColor(employee.attendance[dayIndex] || 'P')}`}>
-                            <SelectValue />
+                          <SelectTrigger className={`w-12 h-9 text-sm border border-slate-300 rounded text-center font-bold ${getAttendanceColor(employee.attendance[dayIndex] || 'NONE')}`}>
+                            <SelectValue placeholder="-" />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="NONE">-</SelectItem>
                             <SelectItem value="P">P</SelectItem>
                             <SelectItem value="A">A</SelectItem>
                             <SelectItem value="H">H</SelectItem>
