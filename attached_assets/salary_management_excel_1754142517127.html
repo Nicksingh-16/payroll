@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Salary Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .control-group input, .control-group select {
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .control-group input:focus, .control-group select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border: 1px solid #2c3e50;
+        }
+        
+        td {
+            padding: 10px 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+            background: white;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        tr:hover {
+            background: #e3f2fd;
+        }
+        
+        .attendance-input {
+            width: 60px;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .salary-input {
+            width: 80px;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .status-p { background: #d4edda; color: #155724; }
+        .status-a { background: #f8d7da; color: #721c24; }
+        .status-h { background: #fff3cd; color: #856404; }
+        .status-pp { background: #cce5ff; color: #004085; }
+        
+        .summary {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .summary-card h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .summary-card .value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .control-group {
+                justify-content: space-between;
+            }
+            
+            table {
+                font-size: 11px;
+            }
+            
+            th, td {
+                padding: 6px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏢 Complete Salary Management System</h1>
+            <p>Attendance Based Salary Calculator with Excel Export</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>महीना:</label>
+                <input type="month" id="monthYear" value="2025-08">
+            </div>
+            <div class="control-group">
+                <label>कुल दिन:</label>
+                <input type="number" id="totalDays" value="31" min="28" max="31">
+            </div>
+            <button class="btn btn-primary" onclick="addEmployee()">➕ कर्मचारी जोड़ें</button>
+            <button class="btn btn-success" onclick="calculateAll()">💰 Salary Calculate करें</button>
+            <button class="btn btn-warning" onclick="exportToExcel()">📊 Excel Export करें</button>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color status-p"></div>
+                <span>P = Present (Full Day)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color status-a"></div>
+                <span>A = Absent</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color status-h"></div>
+                <span>H = Half Day</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color status-pp"></div>
+                <span>PP = Double Shift</span>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <table id="salaryTable">
+                <thead>
+                    <tr>
+                        <th>क्रम</th>
+                        <th>कर्मचारी नाम</th>
+                        <th>पद</th>
+                        <th>मूल वेतन</th>
+                        <th>HRA</th>
+                        <th>अन्य भत्ता</th>
+                        <th>दिन 1</th>
+                        <th>दिन 2</th>
+                        <th>दिन 3</th>
+                        <th>दिन 4</th>
+                        <th>दिन 5</th>
+                        <th>दिन 6</th>
+                        <th>दिन 7</th>
+                        <th>दिन 8</th>
+                        <th>दिन 9</th>
+                        <th>दिन 10</th>
+                        <th>दिन 11</th>
+                        <th>दिन 12</th>
+                        <th>दिन 13</th>
+                        <th>दिन 14</th>
+                        <th>दिन 15</th>
+                        <th>दिन 16</th>
+                        <th>दिन 17</th>
+                        <th>दिन 18</th>
+                        <th>दिन 19</th>
+                        <th>दिन 20</th>
+                        <th>दिन 21</th>
+                        <th>दिन 22</th>
+                        <th>दिन 23</th>
+                        <th>दिन 24</th>
+                        <th>दिन 25</th>
+                        <th>दिन 26</th>
+                        <th>दिन 27</th>
+                        <th>दिन 28</th>
+                        <th>दिन 29</th>
+                        <th>दिन 30</th>
+                        <th>दिन 31</th>
+                        <th>उपस्थिति</th>
+                        <th>कुल वेतन</th>
+                        <th>ESI</th>
+                        <th>PF</th>
+                        <th>अन्य कटौती</th>
+                        <th>कुल कटौती</th>
+                        <th>नेट वेतन</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="employeeTableBody">
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="summary">
+            <div class="summary-card">
+                <h3>कुल कर्मचारी</h3>
+                <div class="value" id="totalEmployees">0</div>
+            </div>
+            <div class="summary-card">
+                <h3>कुल Gross Salary</h3>
+                <div class="value" id="totalGross">₹0</div>
+            </div>
+            <div class="summary-card">
+                <h3>कुल Deductions</h3>
+                <div class="value" id="totalDeductions">₹0</div>
+            </div>
+            <div class="summary-card">
+                <h3>कुल Net Salary</h3>
+                <div class="value" id="totalNet">₹0</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let employees = [];
+        let employeeCounter = 0;
+
+        // Initialize with sample employees
+        function initializeSampleData() {
+            employees = [
+                {id: 1, name: 'राम कुमार', position: 'Manager', basic: 25000, hra: 5000, allowance: 2000, attendance: Array(31).fill('P')},
+                {id: 2, name: 'सीता देवी', position: 'Assistant', basic: 18000, hra: 3600, allowance: 1500, attendance: Array(31).fill('P')},
+                {id: 3, name: 'मोहन लाल', position: 'Worker', basic: 15000, hra: 3000, allowance: 1000, attendance: Array(31).fill('P')}
+            ];
+            employeeCounter = 3;
+            renderTable();
+            calculateAll();
+        }
+
+        function addEmployee() {
+            const name = prompt('कर्मचारी का नाम:') || `Employee ${++employeeCounter}`;
+            const position = prompt('पद:') || 'Worker';
+            const basic = parseInt(prompt('मूल वेतन:') || '15000');
+            const hra = parseInt(prompt('HRA:') || Math.floor(basic * 0.2));
+            const allowance = parseInt(prompt('अन्य भत्ता:') || '1000');
+            
+            employees.push({
+                id: employeeCounter,
+                name: name,
+                position: position,
+                basic: basic,
+                hra: hra,
+                allowance: allowance,
+                attendance: Array(31).fill('P')
+            });
+            
+            renderTable();
+            calculateAll();
+        }
+
+        function deleteEmployee(id) {
+            if(confirm('क्या आप इस कर्मचारी को delete करना चाहते हैं?')) {
+                employees = employees.filter(emp => emp.id !== id);
+                renderTable();
+                calculateAll();
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('employeeTableBody');
+            const totalDays = parseInt(document.getElementById('totalDays').value);
+            
+            tbody.innerHTML = employees.map((emp, index) => {
+                const attendanceColumns = Array.from({length: 31}, (_, i) => {
+                    if (i < totalDays) {
+                        return `<td><input type="text" class="attendance-input status-${emp.attendance[i].toLowerCase()}" 
+                                value="${emp.attendance[i]}" maxlength="2" 
+                                onchange="updateAttendance(${emp.id}, ${i}, this.value)"
+                                onkeyup="this.className='attendance-input status-' + this.value.toLowerCase()"></td>`;
+                    } else {
+                        return `<td style="background: #f0f0f0;">-</td>`;
+                    }
+                }).join('');
+                
+                const attendanceCount = calculateAttendanceCount(emp.attendance, totalDays);
+                const grossSalary = calculateGrossSalary(emp, attendanceCount, totalDays);
+                const esi = Math.floor(grossSalary * 0.0175);
+                const pf = Math.floor(grossSalary * 0.12);
+                const otherDeduction = 0;
+                const totalDeduction = esi + pf + otherDeduction;
+                const netSalary = grossSalary - totalDeduction;
+                
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><input type="text" value="${emp.name}" onchange="updateEmployee(${emp.id}, 'name', this.value)"></td>
+                        <td><input type="text" value="${emp.position}" onchange="updateEmployee(${emp.id}, 'position', this.value)"></td>
+                        <td><input type="number" class="salary-input" value="${emp.basic}" onchange="updateEmployee(${emp.id}, 'basic', parseInt(this.value))"></td>
+                        <td><input type="number" class="salary-input" value="${emp.hra}" onchange="updateEmployee(${emp.id}, 'hra', parseInt(this.value))"></td>
+                        <td><input type="number" class="salary-input" value="${emp.allowance}" onchange="updateEmployee(${emp.id}, 'allowance', parseInt(this.value))"></td>
+                        ${attendanceColumns}
+                        <td><strong>${attendanceCount.toFixed(1)}</strong></td>
+                        <td><strong>₹${grossSalary.toLocaleString()}</strong></td>
+                        <td>₹${esi.toLocaleString()}</td>
+                        <td>₹${pf.toLocaleString()}</td>
+                        <td>₹${otherDeduction.toLocaleString()}</td>
+                        <td><strong>₹${totalDeduction.toLocaleString()}</strong></td>
+                        <td style="background: #d4edda;"><strong>₹${netSalary.toLocaleString()}</strong></td>
+                        <td><button onclick="deleteEmployee(${emp.id})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">🗑️</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateEmployee(id, field, value) {
+            const employee = employees.find(emp => emp.id === id);
+            if (employee) {
+                employee[field] = value;
+                calculateAll();
+            }
+        }
+
+        function updateAttendance(empId, day, value) {
+            const employee = employees.find(emp => emp.id === empId);
+            if (employee) {
+                const upperValue = value.toUpperCase();
+                if (['P', 'A', 'H', 'PP'].includes(upperValue)) {
+                    employee.attendance[day] = upperValue;
+                    calculateAll();
+                }
+            }
+        }
+
+        function calculateAttendanceCount(attendance, totalDays) {
+            let count = 0;
+            for (let i = 0; i < totalDays; i++) {
+                const status = attendance[i];
+                if (status === 'P') count += 1;
+                else if (status === 'H') count += 0.5;
+                else if (status === 'PP') count += 2;
+            }
+            return count;
+        }
+
+        function calculateGrossSalary(employee, attendanceCount, totalDays) {
+            const dailyRate = (employee.basic + employee.hra + employee.allowance) / totalDays;
+            return Math.floor(dailyRate * attendanceCount);
+        }
+
+        function calculateAll() {
+            renderTable();
+            
+            const totalDays = parseInt(document.getElementById('totalDays').value);
+            let totalGross = 0, totalDeductions = 0, totalNet = 0;
+            
+            employees.forEach(emp => {
+                const attendanceCount = calculateAttendanceCount(emp.attendance, totalDays);
+                const grossSalary = calculateGrossSalary(emp, attendanceCount, totalDays);
+                const esi = Math.floor(grossSalary * 0.0175);
+                const pf = Math.floor(grossSalary * 0.12);
+                const deduction = esi + pf;
+                const netSalary = grossSalary - deduction;
+                
+                totalGross += grossSalary;
+                totalDeductions += deduction;
+                totalNet += netSalary;
+            });
+            
+            document.getElementById('totalEmployees').textContent = employees.length;
+            document.getElementById('totalGross').textContent = `₹${totalGross.toLocaleString()}`;
+            document.getElementById('totalDeductions').textContent = `₹${totalDeductions.toLocaleString()}`;
+            document.getElementById('totalNet').textContent = `₹${totalNet.toLocaleString()}`;
+        }
+
+        function exportToExcel() {
+            const monthYear = document.getElementById('monthYear').value;
+            const totalDays = parseInt(document.getElementById('totalDays').value);
+            
+            let csvContent = "data:text/csv;charset=utf-8,";
+            
+            // Headers
+            const headers = [
+                'क्रम', 'कर्मचारी नाम', 'पद', 'मूल वेतन', 'HRA', 'अन्य भत्ता'
+            ];
+            
+            // Add day headers
+            for (let i = 1; i <= totalDays; i++) {
+                headers.push(`दिन ${i}`);
+            }
+            
+            headers.push('उपस्थिति', 'कुल वेतन', 'ESI', 'PF', 'अन्य कटौती', 'कुल कटौती', 'नेट वेतन');
+            
+            csvContent += headers.join(',') + '\n';
+            
+            // Data rows
+            employees.forEach((emp, index) => {
+                const attendanceCount = calculateAttendanceCount(emp.attendance, totalDays);
+                const grossSalary = calculateGrossSalary(emp, attendanceCount, totalDays);
+                const esi = Math.floor(grossSalary * 0.0175);
+                const pf = Math.floor(grossSalary * 0.12);
+                const totalDeduction = esi + pf;
+                const netSalary = grossSalary - totalDeduction;
+                
+                const row = [
+                    index + 1,
+                    emp.name,
+                    emp.position,
+                    emp.basic,
+                    emp.hra,
+                    emp.allowance
+                ];
+                
+                // Add attendance for each day
+                for (let i = 0; i < totalDays; i++) {
+                    row.push(emp.attendance[i]);
+                }
+                
+                row.push(
+                    attendanceCount.toFixed(1),
+                    grossSalary,
+                    esi,
+                    pf,
+                    0,
+                    totalDeduction,
+                    netSalary
+                );
+                
+                csvContent += row.join(',') + '\n';
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Salary_Sheet_${monthYear}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSampleData();
+        });
+
+        // Update table when total days change
+        document.getElementById('totalDays').addEventListener('change', function() {
+            renderTable();
+            calculateAll();
+        });
+    </script>
+</body>
+</html>
