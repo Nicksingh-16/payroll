@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -88,10 +88,16 @@ export default function EmployeeModal({ isOpen, onClose, employee }: EmployeeMod
 
   const createDesignation = useMutation({
     mutationFn: async (name: string) => {
-      return apiRequest('/api/designations', {
-        method: 'POST',
-        body: { name, isActive: 1 },
+      const response = await fetch("/api/designations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, isActive: 1 }),
       });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to create designation");
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/designations'] });
@@ -102,10 +108,11 @@ export default function EmployeeModal({ isOpen, onClose, employee }: EmployeeMod
         description: "पद सफलतापूर्वक बनाया गया",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
+      console.error("Designation creation error:", error);
       toast({
         title: "त्रुटि",
-        description: "पद बनाने में असफल",
+        description: error.message || "पद बनाने में असफल",
         variant: "destructive",
       });
     },
@@ -166,6 +173,9 @@ export default function EmployeeModal({ isOpen, onClose, employee }: EmployeeMod
           <DialogTitle>
             {isEditing ? "कर्मचारी संपादित करें" : "नया कर्मचारी जोड़ें"}
           </DialogTitle>
+          <DialogDescription>
+            {isEditing ? "कर्मचारी की जानकारी अपडेट करें" : "नए कर्मचारी की जानकारी भरें"}
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
