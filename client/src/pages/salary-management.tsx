@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { Calculator, Plus, FileDown, Users } from "lucide-react";
+import { Calculator, Plus, FileDown, Users, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import EmployeeModal from "@/components/employee-modal";
 import SalaryTable from "@/components/salary-table";
 import SummaryCards from "@/components/summary-cards";
@@ -17,11 +18,36 @@ export default function SalaryManagement() {
   const [totalDays, setTotalDays] = useState(31);
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [shouldShowResetPrompt, setShouldShowResetPrompt] = useState(false);
+  const [lastSelectedMonth, setLastSelectedMonth] = useState(selectedMonth);
   const { toast } = useToast();
 
-  const { data: employees = [], isLoading } = useQuery({
+  // ✅ FIX: Typed response to avoid "unknown" error
+  const { data, isLoading } = useQuery<Employee[]>({
     queryKey: ["/api/employees"],
   });
+  const employees: Employee[] = data ?? [];
+
+  // Auto-reset on month change detection
+  useEffect(() => {
+    // Check if month has changed
+    if (selectedMonth !== lastSelectedMonth) {
+      setLastSelectedMonth(selectedMonth);
+      
+      // Get the last saved month from localStorage
+      const savedMonth = localStorage.getItem('lastUsedMonth');
+      
+      // If there's a saved month and it's different from the current selection
+      if (savedMonth && savedMonth !== selectedMonth) {
+        setShouldShowResetPrompt(true);
+      }
+      
+      // Save the current month
+      localStorage.setItem('lastUsedMonth', selectedMonth);
+    }
+  }, [selectedMonth, lastSelectedMonth]);
 
   const updateAttendanceMutation = useMutation({
     mutationFn: async ({ employeeId, day, code }: { employeeId: string; day: number; code: AttendanceCode }) => {
@@ -57,6 +83,31 @@ export default function SalaryManagement() {
     },
   });
 
+  // Reset all attendance records mutation
+  const resetAttendanceMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/employees/reset-attendance", {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to reset attendance");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
+      toast({ 
+        title: "Success", 
+        description: "सभी उपस्थिति रिकॉर्ड रीसेट कर दिए गए हैं" 
+      });
+    },
+    onError: () => {
+      toast({ 
+        title: "Error", 
+        description: "उपस्थिति रिकॉर्ड रीसेट करने में विफल", 
+        variant: "destructive" 
+      });
+    },
+  });
+
   const handleAttendanceChange = (employeeId: string, day: number, code: AttendanceCode) => {
     updateAttendanceMutation.mutate({ employeeId, day, code });
   };
@@ -77,14 +128,23 @@ export default function SalaryManagement() {
     toast({ title: "Success", description: "Excel file exported successfully" });
   };
 
+  const resetAllAttendance = async () => {
+    setIsResetting(true);
+    try {
+      await resetAttendanceMutation.mutateAsync();
+    } finally {
+      setIsResetting(false);
+      setIsResetDialogOpen(false);
+    }
+  };
+
   const calculateAttendanceCount = (attendance: string[], totalDays: number): number => {
     let count = 0;
     for (let i = 0; i < totalDays; i++) {
       const status = attendance[i];
-      if (status === 'P') count += 1;
-      else if (status === 'H') count += 0.5;
-      else if (status === 'PP') count += 2;
-      // 'A' and 'NONE' count as 0, no need to handle explicitly
+      if (status === "P") count += 1;
+      else if (status === "H") count += 0.5;
+      else if (status === "PP") count += 2;
     }
     return count;
   };
@@ -188,6 +248,14 @@ export default function SalaryManagement() {
                 <FileDown className="mr-2 h-4 w-4" />
                 Excel Export
               </Button>
+              <Button
+                variant="outline"
+                className="inline-flex items-center bg-red-600 text-white hover:bg-red-700"
+                onClick={() => setIsResetDialogOpen(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                नया महीना (Reset)
+              </Button>
             </div>
           </div>
 
@@ -244,6 +312,54 @@ export default function SalaryManagement() {
         }}
         employee={editingEmployee}
       />
+
+      {/* Reset Attendance Confirmation Dialog */}
+      <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>सभी उपस्थिति रिकॉर्ड रीसेट करें?</AlertDialogTitle>
+            <AlertDialogDescription>
+              यह क्रिया सभी कर्मचारियों के उपस्थिति रिकॉर्ड को रीसेट कर देगी। यह क्रिया अपरिवर्तनीय है।
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>रद्द करें</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={resetAllAttendance}
+              disabled={isResetting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+                           {isResetting ? "रीसेट हो रहा है..." : "रीसेट करें"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Month Change Reset Prompt */}
+      <AlertDialog open={shouldShowResetPrompt} onOpenChange={setShouldShowResetPrompt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>नया महीना शुरू करें?</AlertDialogTitle>
+            <AlertDialogDescription>
+              आपने महीना बदल दिया है। क्या आप सभी कर्मचारियों के उपस्थिति रिकॉर्ड को रीसेट करना चाहते हैं?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShouldShowResetPrompt(false)}>
+              नहीं, रखें
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                resetAllAttendance();
+                setShouldShowResetPrompt(false);
+              }}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              हां, रीसेट करें
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,6 +1,9 @@
-import { Edit2, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Edit2, Trash2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import type { Employee, AttendanceCode } from "@shared/schema";
 
 interface SalaryTableProps {
@@ -22,6 +25,9 @@ export default function SalaryTable({
   calculateAttendanceCount,
   calculateGrossSalary,
 }: SalaryTableProps) {
+  const [isMarkingAllPresent, setIsMarkingAllPresent] = useState(false);
+  const { toast } = useToast();
+
   const getAttendanceColor = (code: string) => {
     switch (code) {
       case 'P': return 'bg-green-50 text-green-800';
@@ -30,6 +36,35 @@ export default function SalaryTable({
       case 'PP': return 'bg-blue-50 text-blue-800';
       case 'NONE': return 'bg-gray-50 text-gray-600';
       default: return 'bg-gray-50 text-gray-800';
+    }
+  };
+
+  const handleMarkAllPresent = async (day: number) => {
+    if (isMarkingAllPresent) return;
+    
+    setIsMarkingAllPresent(true);
+    try {
+      const response = await fetch("/api/employees/mark-all-present", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ day }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to mark all employees present");
+      
+      await queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
+      toast({ 
+        title: "Success", 
+        description: `सभी कर्मचारी दिन ${day + 1} के लिए उपस्थित चिह्नित किए गए`, 
+      });
+    } catch (error) {
+      toast({ 
+        title: "Error", 
+        description: "सभी कर्मचारियों को उपस्थित चिह्नित करने में विफल", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsMarkingAllPresent(false);
     }
   };
 
@@ -46,10 +81,20 @@ export default function SalaryTable({
               <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide">HRA</th>
               <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide">अन्य भत्ता</th>
               
-              {/* Day columns */}
-              {Array.from({ length: 31 }, (_, i) => (
-                <th key={i} className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide min-w-[40px]">
-                  {i + 1}
+              {/* Day columns with Mark All Present buttons */}
+              {Array.from({ length: totalDays }, (_, dayIndex) => (
+                <th key={dayIndex} className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide min-w-[40px]">
+                  <div className="flex flex-col items-center">
+                    <span>{dayIndex + 1}</span>
+                    <button
+                      onClick={() => handleMarkAllPresent(dayIndex)}
+                      disabled={isMarkingAllPresent}
+                      className="mt-1 text-xs bg-green-100 text-green-800 p-1 rounded hover:bg-green-200 transition-colors"
+                      title="सभी को उपस्थित चिह्नित करें"
+                    >
+                      <Calendar className="h-3 w-3" />
+                    </button>
+                  </div>
                 </th>
               ))}
               
@@ -83,27 +128,23 @@ export default function SalaryTable({
                   <td className="px-4 py-3 text-sm text-slate-900 text-center font-mono">₹{employee.allowance.toLocaleString()}</td>
                   
                   {/* Attendance columns */}
-                  {Array.from({ length: 31 }, (_, dayIndex) => (
+                  {Array.from({ length: totalDays }, (_, dayIndex) => (
                     <td key={dayIndex} className="px-2 py-3 text-center">
-                      {dayIndex < totalDays ? (
-                        <Select
-                          value={employee.attendance[dayIndex] || 'NONE'}
-                          onValueChange={(value) => onAttendanceChange(employee.id, dayIndex, value as AttendanceCode)}
-                        >
-                          <SelectTrigger className={`w-12 h-9 text-sm border border-slate-300 rounded text-center font-bold ${getAttendanceColor(employee.attendance[dayIndex] || 'NONE')}`}>
-                            <SelectValue placeholder="-" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="NONE">-</SelectItem>
-                            <SelectItem value="P">P</SelectItem>
-                            <SelectItem value="A">A</SelectItem>
-                            <SelectItem value="H">H</SelectItem>
-                            <SelectItem value="PP">PP</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
+                      <Select
+                        value={employee.attendance[dayIndex] || 'NONE'}
+                        onValueChange={(value) => onAttendanceChange(employee.id, dayIndex, value as AttendanceCode)}
+                      >
+                        <SelectTrigger className={`w-12 h-9 text-sm border border-slate-300 rounded text-center font-bold ${getAttendanceColor(employee.attendance[dayIndex] || 'NONE')}`}>
+                          <SelectValue placeholder="-" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="NONE">-</SelectItem>
+                          <SelectItem value="P">P</SelectItem>
+                          <SelectItem value="A">A</SelectItem>
+                          <SelectItem value="H">H</SelectItem>
+                          <SelectItem value="PP">PP</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </td>
                   ))}
                   

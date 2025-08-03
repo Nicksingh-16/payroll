@@ -101,6 +101,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // NEW: Reset all employees' attendance
+  app.post("/api/employees/reset-attendance", async (req, res) => {
+    try {
+      const { rows } = await storage.pool.query("SELECT id FROM employees");
+      const employeeIds = rows.map(row => row.id);
+      
+      // Update each employee with empty attendance array
+      for (const id of employeeIds) {
+        await storage.updateEmployee(id, {
+          attendance: Array(31).fill("NONE")
+        });
+      }
+      
+      res.json({ message: "All attendance records reset successfully", count: employeeIds.length });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to reset attendance records" });
+    }
+  });
+
+  // NEW: Mark all employees present for a specific day
+  app.post("/api/employees/mark-all-present", async (req, res) => {
+    try {
+      const { day, code = "P" } = req.body;
+      const dayIndex = parseInt(day);
+      
+      if (isNaN(dayIndex) || dayIndex < 0 || dayIndex >= 31) {
+        return res.status(400).json({ message: "Invalid day index" });
+      }
+      
+      // Get all employees
+      const employees = await storage.getEmployees();
+      
+      // Update each employee's attendance for the specified day
+      for (const employee of employees) {
+        const updatedAttendance = [...employee.attendance];
+        updatedAttendance[dayIndex] = code;
+        
+        await storage.updateEmployee(employee.id, {
+          attendance: updatedAttendance
+        });
+      }
+      
+      res.json({ 
+        message: `All employees marked as ${code} for day ${dayIndex + 1}`,
+        count: employees.length 
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to mark all employees present" });
+    }
+  });
+
   // Designation routes
   app.get("/api/designations", async (req, res) => {
     try {
